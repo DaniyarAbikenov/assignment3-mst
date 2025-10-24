@@ -41,82 +41,86 @@ import java.util.*;
 public class Main {
 
     public static void main(String[] args) throws IOException {
-        String inputFile = "data/small.json";
-        String outputFile = "results/small_output.json";
+        String[] inputs = {"small", "medium", "large", "extralarge"};
 
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        JsonObject root = gson.fromJson(Files.newBufferedReader(Paths.get(inputFile)), JsonObject.class);
-        JsonArray graphs = root.getAsJsonArray("graphs");
+        for(String file : inputs) {
+            String inputFile = "data/" + file + ".json";
+            String outputFile = "results/" + file + "_output.json";
 
-        JsonArray results = new JsonArray();
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            JsonObject root = gson.fromJson(Files.newBufferedReader(Paths.get(inputFile)), JsonObject.class);
+            JsonArray graphs = root.getAsJsonArray("graphs");
 
-        for (JsonElement graphEl : graphs) {
-            JsonObject gObj = graphEl.getAsJsonObject();
-            int id = gObj.get("id").getAsInt();
-            JsonArray nodes = gObj.getAsJsonArray("nodes");
-            JsonArray edges = gObj.getAsJsonArray("edges");
+            JsonArray results = new JsonArray();
 
-            // --- Create node index mapping (A->0, B->1, etc.)
-            Map<String, Integer> nodeIndex = new HashMap<>();
-            for (int i = 0; i < nodes.size(); i++) {
-                nodeIndex.put(nodes.get(i).getAsString(), i);
+            for (JsonElement graphEl : graphs) {
+                JsonObject gObj = graphEl.getAsJsonObject();
+                int id = gObj.get("id").getAsInt();
+                JsonArray nodes = gObj.getAsJsonArray("nodes");
+                JsonArray edges = gObj.getAsJsonArray("edges");
+
+                // --- Create node index mapping (A->0, B->1, etc.)
+                Map<String, Integer> nodeIndex = new HashMap<>();
+                for (int i = 0; i < nodes.size(); i++) {
+                    nodeIndex.put(nodes.get(i).getAsString(), i);
+                }
+
+                // --- Build EdgeWeightedGraph
+                EdgeWeightedGraph graph = new EdgeWeightedGraph(nodes.size());
+                for (JsonElement eEl : edges) {
+                    JsonObject eObj = eEl.getAsJsonObject();
+                    int u = nodeIndex.get(eObj.get("from").getAsString());
+                    int v = nodeIndex.get(eObj.get("to").getAsString());
+                    double w = eObj.get("weight").getAsDouble();
+                    graph.addEdge(new Edge(u, v, w));
+                }
+
+                // --- Prepare output structure for this graph
+                JsonObject result = new JsonObject();
+                result.addProperty("graph_id", id);
+
+                JsonObject stats = new JsonObject();
+                stats.addProperty("vertices", graph.V());
+                stats.addProperty("edges", graph.E());
+                result.add("input_stats", stats);
+
+                // === Run Prim's algorithm ===
+                long startPrim = System.nanoTime();
+                PrimMST prim = new PrimMST(graph);
+                long endPrim = System.nanoTime();
+                double timePrim = (endPrim - startPrim) / 1_000_000.0;
+
+                JsonObject primResult = new JsonObject();
+                primResult.add("mst_edges", mstEdgesToJson(prim.edges(), nodeIndex));
+                primResult.addProperty("total_cost", prim.weight());
+                primResult.addProperty("operations_count", 0);
+                primResult.addProperty("execution_time_ms", timePrim);
+                result.add("prim", primResult);
+
+                // === Run Kruskal's algorithm ===
+                long startKruskal = System.nanoTime();
+                KruskalMST kruskal = new KruskalMST(graph);
+                long endKruskal = System.nanoTime();
+                double timeKruskal = (endKruskal - startKruskal) / 1_000_000.0;
+
+                JsonObject kruskalResult = new JsonObject();
+                kruskalResult.add("mst_edges", mstEdgesToJson(kruskal.edges(), nodeIndex));
+                kruskalResult.addProperty("total_cost", kruskal.weight());
+                kruskalResult.addProperty("operations_count", 0);
+                kruskalResult.addProperty("execution_time_ms", timeKruskal);
+                result.add("kruskal", kruskalResult);
+
+                results.add(result);
             }
 
-            // --- Build EdgeWeightedGraph
-            EdgeWeightedGraph graph = new EdgeWeightedGraph(nodes.size());
-            for (JsonElement eEl : edges) {
-                JsonObject eObj = eEl.getAsJsonObject();
-                int u = nodeIndex.get(eObj.get("from").getAsString());
-                int v = nodeIndex.get(eObj.get("to").getAsString());
-                double w = eObj.get("weight").getAsDouble();
-                graph.addEdge(new Edge(u, v, w));
-            }
+            // --- Write to output file
+            JsonObject outputRoot = new JsonObject();
+            outputRoot.add("results", results);
+            Files.createDirectories(Paths.get("results"));
+            Files.writeString(Paths.get(outputFile), gson.toJson(outputRoot));
 
-            // --- Prepare output structure for this graph
-            JsonObject result = new JsonObject();
-            result.addProperty("graph_id", id);
-
-            JsonObject stats = new JsonObject();
-            stats.addProperty("vertices", graph.V());
-            stats.addProperty("edges", graph.E());
-            result.add("input_stats", stats);
-
-            // === Run Prim's algorithm ===
-            long startPrim = System.nanoTime();
-            PrimMST prim = new PrimMST(graph);
-            long endPrim = System.nanoTime();
-            double timePrim = (endPrim - startPrim) / 1_000_000.0;
-
-            JsonObject primResult = new JsonObject();
-            primResult.add("mst_edges", mstEdgesToJson(prim.edges(), nodeIndex));
-            primResult.addProperty("total_cost", prim.weight());
-            primResult.addProperty("operations_count", 0);
-            primResult.addProperty("execution_time_ms", timePrim);
-            result.add("prim", primResult);
-
-            // === Run Kruskal's algorithm ===
-            long startKruskal = System.nanoTime();
-            KruskalMST kruskal = new KruskalMST(graph);
-            long endKruskal = System.nanoTime();
-            double timeKruskal = (endKruskal - startKruskal) / 1_000_000.0;
-
-            JsonObject kruskalResult = new JsonObject();
-            kruskalResult.add("mst_edges", mstEdgesToJson(kruskal.edges(), nodeIndex));
-            kruskalResult.addProperty("total_cost", kruskal.weight());
-            kruskalResult.addProperty("operations_count", 0);
-            kruskalResult.addProperty("execution_time_ms", timeKruskal);
-            result.add("kruskal", kruskalResult);
-
-            results.add(result);
+            System.out.println("✅ Results saved to: " + outputFile);
         }
-
-        // --- Write to output file
-        JsonObject outputRoot = new JsonObject();
-        outputRoot.add("results", results);
-        Files.createDirectories(Paths.get("results"));
-        Files.writeString(Paths.get(outputFile), gson.toJson(outputRoot));
-
-        System.out.println("✅ Results saved to: " + outputFile);
     }
 
     /**
