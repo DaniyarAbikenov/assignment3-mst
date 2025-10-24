@@ -1,8 +1,9 @@
+import algo.KruskalMST;
+import algo.PrimMST;
 import com.google.gson.*;
 import edu.princeton.cs.algs4.Edge;
 import edu.princeton.cs.algs4.EdgeWeightedGraph;
-import edu.princeton.cs.algs4.KruskalMST;
-import edu.princeton.cs.algs4.PrimMST;
+
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -93,7 +94,9 @@ public class Main {
                 JsonObject primResult = new JsonObject();
                 primResult.add("mst_edges", mstEdgesToJson(prim.edges(), nodeIndex));
                 primResult.addProperty("total_cost", prim.weight());
-                primResult.addProperty("operations_count", 0);
+                long primOps = prim.getOperationCount();
+
+                primResult.addProperty("operations_count", primOps);
                 primResult.addProperty("execution_time_ms", timePrim);
                 result.add("prim", primResult);
 
@@ -102,11 +105,12 @@ public class Main {
                 KruskalMST kruskal = new KruskalMST(graph);
                 long endKruskal = System.nanoTime();
                 double timeKruskal = (endKruskal - startKruskal) / 1_000_000.0;
+                long kruskalOps = kruskal.getOperationCount();
 
                 JsonObject kruskalResult = new JsonObject();
                 kruskalResult.add("mst_edges", mstEdgesToJson(kruskal.edges(), nodeIndex));
                 kruskalResult.addProperty("total_cost", kruskal.weight());
-                kruskalResult.addProperty("operations_count", 0);
+                kruskalResult.addProperty("operations_count", kruskalOps);
                 kruskalResult.addProperty("execution_time_ms", timeKruskal);
                 result.add("kruskal", kruskalResult);
 
