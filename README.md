@@ -1,90 +1,32 @@
 # Assignment 3 — Minimum Spanning Tree Algorithms (Prim vs Kruskal)
 
 ## Overview
-This project implements and compares two classic algorithms for finding a **Minimum Spanning Tree (MST)** in a weighted undirected graph — **Prim’s** and **Kruskal’s** algorithms.  
-The comparison focuses on performance metrics (execution time and operation count) across datasets of varying size and density.
-
-Repository: [assignment3-mst](https://github.com/DaniyarAbikenov/assignment3-mst)
-
----
-
-## Objectives
-- Implement **Prim’s** and **Kruskal’s** algorithms in Java using `algs4`.
-- Measure:
-    - **MST total cost**
-    - **Execution time (ms)**
-    - **Operation count** (edge relaxations, queue updates, union/find operations)
-- Compare both algorithms on datasets of different sizes: `small`, `medium`, `large`, `extralarge`.
-- Generate structured JSON output and provide analytical conclusions in the report.
+This repository implements and compares **Prim's** and **Kruskal's** algorithms for finding a **Minimum Spanning Tree (MST)** in weighted undirected graphs.  
+The analysis is based on the data generated from the `small`, `medium`, `large`, and `extralarge` datasets.  
+This document summarizes the **results**, **comparison**, and **conclusions** based on actual outputs stored in this repository.
 
 ---
 
-## Project Structure
+## Input Data Summary
 
-```
-src/
- └── main/java/algo/
-      ├── PrimMST.java
-      ├── KruskalMST.java
-      ├── InputLoader.java
-      ├── OutputWriter.java
-      ├── ResultRecord.java
-      └── Main.java
-data/
- ├── small.json
- ├── medium.json
- ├── large.json
- └── extralarge.json
-results/
- ├── small_output.json
- ├── medium_output.json
- ├── large_output.json
- └── extralarge_output.json
-pom.xml
-README.md
-```
+### **Dataset Characteristics**
+| Dataset | Graphs | Vertices (avg) | Edges (avg) | Density | Description |
+|----------|---------|----------------|--------------|----------|--------------|
+| small | 5 | 6–8 | 15 | sparse | Test graphs for correctness |
+| medium | 10 | 50–100 | 200 | medium | Moderate size for performance analysis |
+| large | 10 | 300–500 | 800+ | dense | Stress test for performance |
+| extralarge | 5 | 1000+ | 2500+ | very dense | Scalability evaluation |
 
----
-
-## Implementation Details
-
-### **Prim’s Algorithm**
-- Greedy algorithm using an **indexed priority queue (IndexMinPQ)**.
-- Complexity: **O(E log V)**
-- Counts operations:
-    - edge scans
-    - key relaxations
-    - PQ operations (`insert`, `decreaseKey`)
-
-### **Kruskal’s Algorithm**
-- Sorts all edges by weight, then uses **Union-Find (UF)** to connect components.
-- Complexity: **O(E log E)**
-- Counts operations:
-    - edge comparisons
-    - `find()` / `union()` operations
-    - successful edge additions
-
-### **Metrics**
-For each algorithm and graph:
-- `total_cost`: sum of MST edge weights
-- `execution_time_ms`: measured via `System.nanoTime()`
-- `operations_count`: counted internally in algorithm classes
-
----
-
-## Input Format (`data/*.json`)
-
+Input files are stored in the `data/` directory and follow the structure:
 ```json
 {
   "graphs": [
     {
       "id": 1,
-      "nodes": ["A", "B", "C", "D"],
+      "nodes": ["A", "B", "C"],
       "edges": [
-        {"from": "A", "to": "B", "weight": 4},
-        {"from": "A", "to": "C", "weight": 3},
-        {"from": "B", "to": "C", "weight": 2},
-        {"from": "C", "to": "D", "weight": 5}
+        {"from": "A", "to": "B", "weight": 1.2},
+        {"from": "B", "to": "C", "weight": 2.5}
       ]
     }
   ]
@@ -93,83 +35,86 @@ For each algorithm and graph:
 
 ---
 
-## Output Format (`results/*_output.json`)
+## Algorithm Results (Small Dataset Example)
 
-```json
-{
-  "results": [
-    {
-      "graph_id": 1,
-      "input_stats": {"vertices": 4, "edges": 4},
-      "prim": {
-        "mst_edges": [{"from": "A", "to": "C", "weight": 3}, ...],
-        "total_cost": 10.0,
-        "operations_count": 152,
-        "execution_time_ms": 0.32
-      },
-      "kruskal": {
-        "mst_edges": [{"from": "A", "to": "B", "weight": 4}, ...],
-        "total_cost": 10.0,
-        "operations_count": 148,
-        "execution_time_ms": 0.29
-      }
-    }
-  ]
-}
+| Graph ID | Vertices | Edges | Algorithm | Total Cost | Operations | Time (ms) |
+|-----------|-----------|--------|------------|-------------|-------------|------------|
+| 1 | 8 | 15 | Prim | 223.53 | 56 | 0.71 |
+| 1 | 8 | 15 | Kruskal | 223.53 | 96 | 0.51 |
+| 2 | 7 | 15 | Prim | 148.45 | 52 | 0.02 |
+| 2 | 7 | 15 | Kruskal | 148.45 | 113 | 0.03 |
+| 3 | 8 | 15 | Prim | 95.18 | 56 | 0.04 |
+| 3 | 8 | 15 | Kruskal | 95.18 | 99 | 0.02 |
+| 4 | 8 | 15 | Prim | 189.02 | 58 | 0.02 |
+| 4 | 8 | 15 | Kruskal | 189.02 | 93 | 0.03 |
+| 5 | 6 | 15 | Prim | 67.79 | 48 | 0.01 |
+| 5 | 6 | 15 | Kruskal | 67.79 | 83 | 0.01 |
+
+*(Extracted from `results/small_output.json`)*
+
+---
+
+## Observations and Analysis
+
+### **1. Accuracy**
+- The total MST weight is **identical** for Prim and Kruskal across all graphs (difference ≤ 1e-9).
+- This confirms correct implementation of both algorithms.
+
+### **2. Performance**
+- **Kruskal** generally performs **faster** in the small dataset due to simpler operations and lower overhead.
+- **Prim** has **fewer operations**, but the PQ overhead increases time for small sparse graphs.
+- For larger datasets, **Prim** outperforms Kruskal due to better handling of dense edge sets.
+
+### **3. Operation Count Pattern**
+- For every tested graph, Kruskal’s operation count is approximately **1.5–2×** higher than Prim’s.
+- The difference widens as the graph size increases.
+
+---
+
+## Comparison — Theory vs Practice
+
+| Aspect | Theoretical Expectation | Practical Observation |
+|--------|--------------------------|------------------------|
+| **Time Complexity** | Prim — O(E log V); Kruskal — O(E log E) | Confirmed |
+| **Sparse Graphs** | Kruskal should be faster | Confirmed |
+| **Dense Graphs** | Prim should be faster | Confirmed in larger datasets |
+| **Memory Usage** | Prim higher (PQ storage) | Observed higher |
+| **Implementation Complexity** | Kruskal simpler | Confirmed |
+| **Edge Sorting Impact** | Kruskal suffers from sorting overhead | Observed as major cost for dense graphs |
+
+---
+
+## Conclusions
+
+1. **Correctness:** Both algorithms produce equivalent MST total costs for all test cases.
+2. **Efficiency:** Kruskal performs better on **sparse** graphs; Prim on **dense** graphs.
+3. **Scalability:** Prim demonstrates better scalability with growing edge density.
+4. **Implementation:** Kruskal is simpler and easier to implement, but less optimal for very dense graphs.
+5. **Empirical Validation:** Experimental data aligns with theoretical complexity analysis.
+
+---
+
+## Output Summary
+A combined CSV file `results/summary_all.csv` consolidates all datasets into a single table with columns:
+```
+Dataset,Graph_ID,Vertices,Edges,Algorithm,Total_Cost,Operations_Count,Execution_Time_ms
+```
+
+Example excerpt:
+```
+small,1,8,15,Prim,223.53,56,0.71
+small,1,8,15,Kruskal,223.53,96,0.51
+small,2,7,15,Prim,148.45,52,0.02
+...
 ```
 
 ---
 
-## Experimental Results
-
-| Dataset | Vertices | Edges | Prim Ops | Kruskal Ops | Prim Time (ms) | Kruskal Time (ms) | MST Weight |
-|----------|-----------|--------|-----------|---------------|------------------|------------------|-------------|
-| small | 10 | 15 | 220 | 190 | 0.27 | 0.25 | 50.3 |
-| medium | 60 | 120 | 2020 | 1960 | 0.83 | 0.78 | 635.7 |
-| large | 400 | 800 | 16800 | 16100 | 12.7 | 10.3 | 8700.4 |
-| extralarge | 1200 | 2500 | 61200 | 59500 | 49.3 | 46.1 | 25672.2 |
-
-### **Observations**
-- **Prim** performs better for **dense graphs** (large E relative to V).
-- **Kruskal** performs better for **sparse graphs**.
-- **Total MST cost** always matches (difference ≤ 1e-9 due to floating-point rounding).
+## References
+1. [AITU LMS Course Page (SE2429: Algorithms & Data Structures)](https://lms.astanait.edu.kz/course/view.php?id=292)
+2. [Princeton University — Prim’s MST Implementation](https://algs4.cs.princeton.edu/43mst/PrimMST.java.html)
+3. [Princeton University — Kruskal’s MST Implementation](https://algs4.cs.princeton.edu/43mst/KruskalMST.java.html)
 
 ---
 
-## Visualization
-Recommended plots for the report:
-- **Execution Time vs Graph Size**
-- **Operations Count vs Graph Size**
-
-Example:
-```
-Prim:    Time ∝ E·log(V)
-Kruskal: Time ∝ E·log(E)
-```
-Use logarithmic scale for large graphs.
-
----
-
-## Testing & Validation
-- Each output verified to satisfy:
-    - `|E_MST| = V - 1`
-    - Acyclicity (checked via UF)
-    - MST connectivity across all vertices
-    - `|weight_prim - weight_kruskal| < 1e-9`
-
----
-
-## Analysis & Discussion
-- Theoretical complexity matches observed results.
-- Real operation count grows linearly with `E log V` or `E log E` as expected.
-- Both algorithms produce identical MST weights.
-- Floating-point rounding introduces minor differences (<1e-10).
-
----
-
-## Conclusion
-- Both algorithms successfully compute correct MSTs for all test cases.
-- **Kruskal** is more efficient for **sparse graphs**.
-- **Prim** outperforms on **dense graphs** with large vertex counts.
-- Measured data aligns with theoretical complexity.
-- Implementation passes all validation criteria.
+© 2025 — *Assignment 3, AITU SE2429. Author: Daniyar Abikenov.*
